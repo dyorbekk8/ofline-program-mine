@@ -43,23 +43,37 @@ def update_lead_status(
   sheet = client.open(sheet_name).worksheet("Leads")
   current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-  sheet.update_cell(row_index, 5, status)
-  sheet.update_cell(row_index, 6, template_id)
-  sheet.update_cell(row_index, 7, current_time)
+  sheet.update_cell(row_index, 6, status)  # F ustuni (Status)
+  sheet.update_cell(row_index, 7, template_id)  # G ustuni (Template_ID)
+  sheet.update_cell(row_index, 8, current_time)  # H ustuni (Date_Sent)
 
 
-# --- CONFIG (Kunlik limitlar uchun) ---
+# --- CONFIG (K va L ustunlari) ---
 
 
 def get_config(sheet_name="LeadsBot"):
   client = get_sheets_client()
   sheet = client.open(sheet_name).worksheet("Config")
-  data = sheet.get_all_records()
-  return {row["Key"]: row["Value"] for row in data}
+  rows = sheet.get_all_values()
+  config = {}
+  for row in rows:
+    if len(row) >= 12:
+      k = row[10].strip()  # K ustuni (11-chi)
+      v = row[11].strip()  # L ustuni (12-chi)
+      if k:
+        config[k] = v
+  return config
 
 
 def update_config(key, value, sheet_name="LeadsBot"):
   client = get_sheets_client()
   sheet = client.open(sheet_name).worksheet("Config")
-  cell = sheet.find(key)
-  sheet.update_cell(cell.row, 2, value)  # B ustuni (Value)
+  try:
+    cell = sheet.find(key, in_column=11)
+    if cell:
+      sheet.update_cell(cell.row, 12, str(value))
+  except Exception:
+    col_k = sheet.col_values(11)
+    next_row = len(col_k) + 1
+    sheet.update_cell(next_row, 11, key)
+    sheet.update_cell(next_row, 12, str(value))
