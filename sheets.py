@@ -48,7 +48,7 @@ def update_lead_status(
   sheet.update_cell(row_index, 8, current_time)  # H ustuni (Date_Sent)
 
 
-# --- CONFIG (I, J, K, L, M, N ustunlari) ---
+# --- CONFIG (I1=last_run_date, J1=sana, K-N ustunlar: Account, Limit, Sent_Today, Total_Sent) ---
 
 
 def get_config(sheet_name="LeadsBot"):
@@ -61,7 +61,7 @@ def get_config(sheet_name="LeadsBot"):
   for idx, row in enumerate(rows):
     # I1 (9-ustun) va J1 (10-ustun) dan sanani o'qiymiz
     if idx == 0 and len(row) >= 10:
-      if row[8].strip() == "last_run_date":
+      if row[8].strip().lower() == "last_run_date":
         config["last_run_date"] = row[9].strip()
 
     # 2-qatordan boshlab akkauntlarni o'qiymiz (K=11, L=12, M=13, N=14 ustunlar)
@@ -115,4 +115,6 @@ def reset_daily_counts(sheet_name="LeadsBot"):
     if idx >= 1 and len(row) >= 13:
       acc_name = row[10].strip().lower()
       if acc_name and acc_name != "account":
-        sheet.update_cell(idx + 1, 13, "0")  # M ustunini (Sent_Today) 0 ga tushiradi
+        sheet.update_cell(
+            idx + 1, 13, "0"
+        )  # M ustunini (Sent_Today) 0 ga tushiradi
