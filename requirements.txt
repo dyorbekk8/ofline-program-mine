@@ -1,0 +1,6 @@
+gspread
+google-auth
+telethon
+discord.py
+requests
+python-dotenv
