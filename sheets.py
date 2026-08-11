@@ -48,32 +48,71 @@ def update_lead_status(
   sheet.update_cell(row_index, 8, current_time)  # H ustuni (Date_Sent)
 
 
-# --- CONFIG (K va L ustunlari) ---
+# --- CONFIG (I, J, K, L, M, N ustunlari) ---
 
 
 def get_config(sheet_name="LeadsBot"):
   client = get_sheets_client()
   sheet = client.open(sheet_name).worksheet("Config")
   rows = sheet.get_all_values()
-  config = {}
-  for row in rows:
-    if len(row) >= 12:
-      k = row[10].strip()  # K ustuni (11-chi)
-      v = row[11].strip()  # L ustuni (12-chi)
-      if k:
-        config[k] = v
+
+  config = {"last_run_date": "", "accounts": {}}
+
+  for idx, row in enumerate(rows):
+    # I1 (9-ustun) va J1 (10-ustun) dan sanani o'qiymiz
+    if idx == 0 and len(row) >= 10:
+      if row[8].strip() == "last_run_date":
+        config["last_run_date"] = row[9].strip()
+
+    # 2-qatordan boshlab akkauntlarni o'qiymiz (K=11, L=12, M=13, N=14 ustunlar)
+    if idx >= 1 and len(row) >= 14:
+      acc_name = row[10].strip().lower()  # K ustuni: Account nomi
+      if acc_name and acc_name != "account":
+        try:
+          limit = int(row[11])  # L ustuni: Limit
+        except:
+          limit = 10
+        try:
+          sent_today = int(row[12])  # M ustuni: Sent_Today
+        except:
+          sent_today = 0
+        try:
+          total_sent = int(row[13])  # N ustuni: Total_Sent
+        except:
+          total_sent = 0
+
+        config["accounts"][acc_name] = {
+            "limit": limit,
+            "sent_today": sent_today,
+            "total_sent": total_sent,
+        }
   return config
 
 
-def update_config(key, value, sheet_name="LeadsBot"):
+def update_account_stats(
+    account_name, sent_today, total_sent, sheet_name="LeadsBot"
+):
   client = get_sheets_client()
   sheet = client.open(sheet_name).worksheet("Config")
-  try:
-    cell = sheet.find(key, in_column=11)
-    if cell:
-      sheet.update_cell(cell.row, 12, str(value))
-  except Exception:
-    col_k = sheet.col_values(11)
-    next_row = len(col_k) + 1
-    sheet.update_cell(next_row, 11, key)
-    sheet.update_cell(next_row, 12, str(value))
+  cell = sheet.find(account_name, in_column=11)  # K ustunidan qidiradi (11-ustun)
+  if cell:
+    row = cell.row
+    sheet.update_cell(row, 13, str(sent_today))  # M ustuni (Sent_Today)
+    sheet.update_cell(row, 14, str(total_sent))  # N ustuni (Total_Sent)
+
+
+def update_last_run_date(date_str, sheet_name="LeadsBot"):
+  client = get_sheets_client()
+  sheet = client.open(sheet_name).worksheet("Config")
+  sheet.update_cell(1, 10, date_str)  # J1 katagiga sanani yozadi
+
+
+def reset_daily_counts(sheet_name="LeadsBot"):
+  client = get_sheets_client()
+  sheet = client.open(sheet_name).worksheet("Config")
+  rows = sheet.get_all_values()
+  for idx, row in enumerate(rows):
+    if idx >= 1 and len(row) >= 13:
+      acc_name = row[10].strip().lower()
+      if acc_name and acc_name != "account":
+        sheet.update_cell(idx + 1, 13, "0")  # M ustunini (Sent_Today) 0 ga tushiradi
